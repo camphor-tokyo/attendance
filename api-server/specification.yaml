@@ -4,7 +4,7 @@ info:
   title: CAMPHOR- Tokyo Attendance
   license:
     name: MIT
-host: petstore.swagger.io
+host: 
 basePath: /
 schemes:
   - http
