@@ -1,0 +1,15 @@
+swagger: "2.0"
+info:
+  version: 1.0.0
+  title: CAMPHOR- Tokyo Attendance
+  license:
+    name: MIT
+host: petstore.swagger.io
+basePath: /
+schemes:
+  - http
+consumes:
+  - application/json
+produces:
+  - application/json
+paths:
