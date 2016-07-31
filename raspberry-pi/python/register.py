@@ -10,19 +10,8 @@ import sqlite3
 
 import nfc
 
-SQLITE_FILE = "attendance.db"
-SQLITE_DATABASE = "tokyo"
-SQLRESULT = Enum('INSERT', 'UPDATE', 'ERROR')
-
-
-def extract_idm(tag):
-    if isinstance(tag, nfc.tag.tt3.Type3Tag):
-        try:
-            return hexlify(tag.idm).upper(), None
-        except Exception as e:
-            return None, "error: {}".format(e)
-    return None,"error: tag isn't Type3Tag"
-
+from common import SQLITE_FILE, SQLITE_DATABASE, SQLRESULT
+from common import extract_idm
 
 def register(idm, name):
     conn = sqlite3.connect(SQLITE_FILE)
