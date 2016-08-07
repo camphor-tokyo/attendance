@@ -19,21 +19,23 @@ ATTEND = Enum('ARRIVED', 'LEFT', 'ERROR')
 def notify(user, attend):
     if attend == ATTEND.ARRIVED:
         print("[NOTIFICATION] {} attends now".format(user))
-    else:
+    elif attend == ATTEND.LEFT:
         print("[NOTIFICATION] {} leaves now".format(user))
+    else:
+        return False, "[WARN] error: attend should be ARRIVED or LEFT"
     return True, None
 
 
 def write_attend_log(idm, attend):
     conn = sqlite3.connect(SQLITE_FILE)
     cur = conn.cursor()
-    if attend is ATTEND.ARRIVED:
+    if attend == ATTEND.ARRIVED:
         result = SQLRESULT.INSERT
         sql = """
         INSERT INTO attend_logs (idm, arrived_time)
         VALUES ('{}', datetime('now'));
         """.format(idm)
-    else:
+    elif attend == ATTEND.LEFT :
         result = SQLRESULT.UPDATE
         sql = """
         UPDATE attend_logs
@@ -42,6 +44,8 @@ def write_attend_log(idm, attend):
               AND ARRIVED_TIME is not NULL
               AND LEFT_TIME is NULL
         """.format(idm)
+    else:
+        return SQLRESULT.ERROR, "[WARN] error: attend should be ARRIVED or LEFT"
     try:
          cur.execute(sql)
          conn.commit()
