@@ -127,6 +127,10 @@ def released(tag):
         print(err)
         return
 
+    # @ から始まっていない場合は先頭に @ をつける
+    if not user.startswith("@"):
+        user = "@" + user
+
     # Notification を送る
     is_notified, err = notify(user, attend)
     if err is not None:
