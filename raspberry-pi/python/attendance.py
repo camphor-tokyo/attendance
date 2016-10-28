@@ -24,6 +24,7 @@ def notify(user, attend):
         notify_to_slack(text="{} が来ました".format(user))
     elif attend == ATTEND.LEFT:
         print("[NOTIFICATION] {} leaves now".format(user))
+        notify_to_slack(text="{} が帰りました".format(user))
     else:
         return False, "[WARN] error: attend should be ARRIVED or LEFT"
     return True, None
@@ -150,7 +151,8 @@ def notify_to_slack(text, channel=None, username=None, icon_emoji=None):
         "text": text,
         "channel": channel,
         "username": username,
-        "icon_emoji": icon_emoji
+        "icon_emoji": icon_emoji,
+        "link_names": 1
     }
     payload_json = json.dumps(payload)
     data = urllib.urlencode({"payload": payload_json})
