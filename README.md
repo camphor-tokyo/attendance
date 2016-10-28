@@ -15,9 +15,7 @@ pip install -r requirements.txt
 ```
 
 ### Start
-Start `attendance.py` with supervisord
-
 ```sh
-cd raspberry-pi
-SLACK_WEBHOOK_URL=<YOUR_SLACK_WEBHOOK_URL> sudo supervisord -c supervisord.conf
+cd raspberry-pi/python
+SLACK_WEBHOOK_URL=<YOUR_SLACK_WEBHOOK_URL> sudo -E venv/bin/python attendance.py
 ```
