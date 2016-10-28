@@ -3,22 +3,25 @@
 
 from __future__ import print_function
 
-from enum import Enum
-import sys
-import sqlite3
+import json
+import os
 import signal
+import sqlite3
+import sys
+import urllib
+import urllib2
+from enum import Enum
 
 import nfc
-
-from common import extract_idm
-from common import SQLITE_FILE, SQLITE_DATABASE, SQLRESULT
-
+from common import SQLITE_DATABASE, SQLITE_FILE, SQLRESULT, extract_idm
 
 ATTEND = Enum('ARRIVED', 'LEFT', 'ERROR')
+
 
 def notify(user, attend):
     if attend == ATTEND.ARRIVED:
         print("[NOTIFICATION] {} attends now".format(user))
+        notify_to_slack(text="{} が来ました".format(user))
     elif attend == ATTEND.LEFT:
         print("[NOTIFICATION] {} leaves now".format(user))
     else:
@@ -35,7 +38,7 @@ def write_attend_log(idm, attend):
         INSERT INTO attend_logs (idm, arrived_time)
         VALUES ('{}', datetime('now'));
         """.format(idm)
-    elif attend == ATTEND.LEFT :
+    elif attend == ATTEND.LEFT:
         result = SQLRESULT.UPDATE
         sql = """
         UPDATE attend_logs
@@ -47,8 +50,8 @@ def write_attend_log(idm, attend):
     else:
         return SQLRESULT.ERROR, "[WARN] error: attend should be ARRIVED or LEFT"
     try:
-         cur.execute(sql)
-         conn.commit()
+        cur.execute(sql)
+        conn.commit()
     except Exception as e:
         return SQLRESULT.ERROR, "[WARN] error: SQL failed because {}".format(e)
     conn.close()
@@ -67,7 +70,7 @@ def get_status_from_idm(idm):
           AND left_time is NULL
     """.format(idm)
     try:
-         cur.execute(sql)
+        cur.execute(sql)
     except Exception as e:
         return ATTEND.ERROR, "[WARN] error: SQL failed because {}".format(e)
     row = cur.fetchone()
@@ -136,6 +139,23 @@ def released(tag):
     if err is not None:
         print(err)
         return
+
+
+def notify_to_slack(text, channel=None, username=None, icon_emoji=None):
+    url = os.environ["SLACK_WEBHOOK_URL"]
+    if url is None:
+        return
+
+    payload = {
+        "text": text,
+        "channel": channel,
+        "username": username,
+        "icon_emoji": icon_emoji
+    }
+    payload_json = json.dumps(payload)
+    data = urllib.urlencode({"payload": payload_json})
+    request = urllib2.Request(url, data)
+    urllib2.urlopen(request)
 
 
 def sigint_handler(*args):
