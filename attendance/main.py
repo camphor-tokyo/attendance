@@ -16,6 +16,7 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, sigint_handler)
 
     attendance = Attendance()
+    attendance.mode = attendance.MODE.REGISTER
     attendance.daemon = True
     attendance.start()
 
