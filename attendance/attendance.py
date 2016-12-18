@@ -13,6 +13,7 @@ import urllib2
 from enum import Enum
 
 import nfc
+from slackclient import SlackClient
 
 from common import SQLITE_DATABASE, SQLITE_FILE, SQLRESULT, extract_idm
 
@@ -24,6 +25,7 @@ class Attendance(threading.Thread):
     def __init__(self):
         super(Attendance, self).__init__()
         self.mode = self.MODE.ATTEND
+        self.slack_client = SlackClient(os.environ["SLACK_API_TOKEN"])
 
     def run(self):
         print("Please tap your card on the nfc reader. Waiting...")
@@ -218,18 +220,11 @@ class Attendance(threading.Thread):
                 print("Your idm:{}, name:{} are updated!!".format(idm, name))
 
     def notify_to_slack(self, text, channel=None, username=None, icon_emoji=None):
-        url = os.environ["SLACK_WEBHOOK_URL"]
-        if url is None:
-            return
-
-        payload = {
-            "text": text,
-            "channel": channel,
-            "username": username,
-            "icon_emoji": icon_emoji,
-            "link_names": 1
-        }
-        payload_json = json.dumps(payload)
-        data = urllib.urlencode({"payload": payload_json})
-        request = urllib2.Request(url, data)
-        urllib2.urlopen(request)
+        self.slack_client.api_call(
+            "chat.postMessage",
+            channel=channel,
+            text=text,
+            username=username,
+            icon_emoji=icon_emoji,
+            link_names=1
+        )
