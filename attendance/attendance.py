@@ -31,6 +31,14 @@ class Attendance(threading.Thread):
         clf = nfc.ContactlessFrontend('usb')
         clf.connect(rdwr={'on-release': self.released})
 
+    def toggle_mode(self):
+        if self.mode == self.MODE.ATTEND:
+            print("switched to register mode")
+            self.mode = self.MODE.REGISTER
+        elif self.mode == self.MODE.REGISTER:
+            print("switched to attend mode")
+            self.mode = self.MODE.ATTEND
+
     def notify(self, user, attend):
         if attend == self.ATTEND.ARRIVED:
             print("[NOTIFICATION] {} attends now".format(user))
