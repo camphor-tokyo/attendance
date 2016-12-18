@@ -17,5 +17,6 @@ pip install -r requirements.txt
 ### Start
 ```sh
 cd attendance
-SLACK_WEBHOOK_URL=<YOUR_SLACK_WEBHOOK_URL> sudo -E venv/bin/python attendance.py
+source venv/bin/activate
+SLACK_WEBHOOK_URL=<YOUR_SLACK_WEBHOOK_URL> python main.py
 ```
