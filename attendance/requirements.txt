@@ -3,3 +3,4 @@ libusb1==1.5.0
 nfcpy==0.11.1
 pyserial==3.1.1
 pyusb==1.0.0
+RPi.GPIO==0.6.3

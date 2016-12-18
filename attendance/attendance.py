@@ -18,17 +18,26 @@ from common import SQLITE_DATABASE, SQLITE_FILE, SQLRESULT, extract_idm
 
 
 class Attendance(threading.Thread):
+    MODE = Enum('ATTEND', 'REGISTER')
     ATTEND = Enum('ARRIVED', 'LEFT', 'ERROR')
 
     def __init__(self):
         super(Attendance, self).__init__()
+        self.mode = self.MODE.ATTEND
 
     def run(self):
         print("Please tap your card on the nfc reader. Waiting...")
         sys.stdout.flush()
         clf = nfc.ContactlessFrontend('usb')
-        while True:
-            clf.connect(rdwr={'on-release': self.released})
+        clf.connect(rdwr={'on-release': self.released})
+
+    def toggle_mode(self):
+        if self.mode == self.MODE.ATTEND:
+            print("switched to register mode")
+            self.mode = self.MODE.REGISTER
+        elif self.mode == self.MODE.REGISTER:
+            print("switched to attend mode")
+            self.mode = self.MODE.ATTEND
 
     def notify(self, user, attend):
         if attend == self.ATTEND.ARRIVED:
@@ -113,41 +122,100 @@ class Attendance(threading.Thread):
             user = row[0]
         return user, None
 
+    def register(self, idm, name):
+        conn = sqlite3.connect(SQLITE_FILE)
+        c = conn.cursor()
+
+        try:
+            # Check whether idm is already recorded or not
+            c.execute("SELECT * FROM idms WHERE idm = '{}';".format(idm))
+            is_recorded = (c.fetchone() is not None)
+        except Exception as e:
+            return SQLRESULT.ERROR, "error: {}".format(e)
+
+        if is_recorded:
+            # If idm is recorded, name will be updated
+            sql = """
+            UPDATE idms
+            SET name='{}', modified=date('now')
+            WHERE idm = '{}';
+            """.format(name, idm)
+            result = SQLRESULT.UPDATE
+        else:
+            # If idm is not recorded, (idm, name) will be inserted
+            sql = """
+            INSERT INTO idms (idm, name, created, modified)
+            VALUES ('{}', '{}', date('now'), date('now'));
+            """.format(idm, name)
+            result = SQLRESULT.INSERT
+        try:
+            c.execute(sql)
+            conn.commit()
+        except Exception as e:
+            return SQLRESULT.ERROR, "error: {}".format(e)
+
+        conn.close()
+        return result, None
+
     def released(self, tag):
-        # idm の取得
-        idm, err = extract_idm(tag)
-        if err is not None:
-            print(err)
-            return
-        print("[INFO] Your IDm is {}".format(idm))
+        if self.mode == self.MODE.ATTEND:
+            # idm の取得
+            idm, err = extract_idm(tag)
+            if err is not None:
+                print(err)
+                return
+            print("[INFO] Your IDm is {}".format(idm))
 
-        # idm から出席ログを取得する
-        attend, err = self.get_status_from_idm(idm)
-        if err is not None:
-            print(err)
-            return
+            # idm から出席ログを取得する
+            attend, err = self.get_status_from_idm(idm)
+            if err is not None:
+                print(err)
+                return
 
-        # attend_log に書き込みをする
-        is_updated, err = self.write_attend_log(idm, attend)
-        if err is not None:
-            print(err)
-            return
+            # attend_log に書き込みをする
+            is_updated, err = self.write_attend_log(idm, attend)
+            if err is not None:
+                print(err)
+                return
 
-        # idm からユーザ名を取得する
-        user, err = self.get_user_from_idm(idm)
-        if err is not None:
-            print(err)
-            return
+            # idm からユーザ名を取得する
+            user, err = self.get_user_from_idm(idm)
+            if err is not None:
+                print(err)
+                return
 
-        # @ から始まっていない場合は先頭に @ をつける
-        if not user.startswith("@"):
-            user = "@" + user
+            # @ から始まっていない場合は先頭に @ をつける
+            if not user.startswith("@"):
+                user = "@" + user
 
-        # Notification を送る
-        is_notified, err = self.notify(user, attend)
-        if err is not None:
-            print(err)
-            return
+            # Notification を送る
+            is_notified, err = self.notify(user, attend)
+            if err is not None:
+                print(err)
+                return
+        elif self.mode == self.MODE.REGISTER:
+            # idm の取得
+            idm, err = extract_idm(tag)
+            if err is not None:
+                print(err)
+                return
+            print("Your IDm is {}".format(idm))
+
+            # ユーザ名の取得
+            print("Please input your slack account name: ", end="")
+            sys.stdout.flush()
+            name = sys.stdin.readline().rstrip()
+
+            # idm とユーザ名の登録
+            result, err = self.register(idm, name)
+            if err is not None:
+                print(err)
+                return
+
+            if result == SQLRESULT.INSERT:
+                print("Your idm:{}, name:{} are registered!!".format(idm, name))
+            else:
+                print("Your idm:{}, name:{} are updated!!".format(idm, name))
 
     def notify_to_slack(self, text, channel=None, username=None, icon_emoji=None):
         url = os.environ["SLACK_WEBHOOK_URL"]
